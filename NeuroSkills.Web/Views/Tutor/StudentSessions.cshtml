@@ -1,0 +1,346 @@
+﻿@{
+    ViewData["Title"] = "Asistencia Paciente";
+    var adminRole = "admin";
+    var tutorRole = "tutor";
+    var customTutor = !User.HasRole(tutorRole) && User.HasRole(adminRole);
+}
+
+<h1>Asistencia Paciente</h1>
+
+<div id="message"></div>
+
+<input asp-if="User.HasRole(tutorRole)" type="hidden" id="TutorId" value="" />
+
+<div id="content">
+    <form id="studentForm">
+        <div class="form-group">
+            <label for="StudentId">Paciente</label>
+            <select class="form-select" id="StudentId" name="StudentId" onchange="LoadData()" required aria-describedby="StudentId" placeholder="Selecciona el paciente"></select>
+        </div>
+    </form>
+
+    <br />
+    
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#formModal" data-bs-id="">Asignar <i class="bi bi-plus-lg"></i></button>
+
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th scope="col">Fecha</th>
+                <th scope="col">Tutor</th>
+                <th scope="col">Terapia</th>
+                <th scope="col">Acciones</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+        </tbody>
+    </table>
+
+    <div class="modal fade" id="formModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Modal title</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="modalMessage"></div>
+                    <form id="modalForm">
+                        @Html.AntiForgeryToken()
+                        <div class="form-group">
+                            <label for="Date">Fecha:</label>
+                            <input type="date" class="form-control" id="Date" required name="Date" aria-describedby="Date" placeholder="Ingresa la fecha">
+                        </div>
+                        <div class="form-group">
+                            <label for="Therapy">Terapia:</label>
+                            <select class="form-select" id="Therapy" name="Therapy" required aria-describedby="Therapy" placeholder="Selecciona la terapia"></select>
+                        </div>
+                        <div asp-if="customTutor" class="form-group">
+                            <label for="TutorId">Tutor</label>
+                            <select class="form-select" id="TutorId" name="TutorId" required aria-describedby="TutorId" placeholder="Selecciona el tutor"></select>
+                        </div>
+                        <input type="hidden" id="Id" name="Id" value="" />
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" id="confirmButton" onclick="SendData()" class="btn btn-primary">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="deleteModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Eliminar</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="deleteModalMessage"></div>
+                    ¿Está seguro de eliminar el registro <strong id="descriptionText"></strong>?
+                    <input type="hidden" id="DeleteId" name="DeleteId" value="" />
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" id="confirmButton" onclick="DeleteData()" class="btn btn-danger">Eliminar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts{
+    <script>
+        var formModal = document.getElementById('formModal');
+        formModal.addEventListener('show.bs.modal', function (event) {
+            var dateInput = formModal.querySelector('#Date');
+            var therapyInput = formModal.querySelector('#Therapy');
+            $('#modalMessage').html('');
+            $('#confirmButton').html('Registrar');
+            $('#modalTitle').html('Registrar');
+            LoadTherapies();
+            dateInput.value = '';
+            therapyInput.value = '';
+            if (@(customTutor ? "true" : "false")) {
+                LoadTutorsData();
+                var tutorInput = formModal.querySelector('#TutorId');
+                tutorInput.value = '';
+            }
+        });
+
+        var deleteModal = document.getElementById('deleteModal');
+        deleteModal.addEventListener('show.bs.modal', function (event) {
+            // Button that triggered the modal
+            var button = event.relatedTarget;
+            var id = button.getAttribute('data-bs-id');
+            var title = button.getAttribute('data-bs-title');
+            $('#deleteModalMessage').html('');
+            var idInput = deleteModal.querySelector('#DeleteId');
+            idInput.value = id;
+            $('#descriptionText').html(title);
+        });
+
+        function SendData() {
+            var tutorId = $('#TutorId').val();
+            var studentId = $('#StudentId').val();
+            var dateInput = formModal.querySelector('#Date');
+            var therapyInput = formModal.querySelector('#Therapy');
+            var dataObject = {
+                tutorId: tutorId,
+                studentId: studentId,
+                therapyId: therapyInput.value,
+                date: dateInput.value,
+                user: '@(User.UserName)'
+            };
+
+            $.ajax({
+                url: '@Api/StudentTherapySession/add',
+                type: 'POST',
+                contentType: "application/json; charset=utf-8",
+                data: JSON.stringify(dataObject),
+            })
+                .done(function () {
+                    $('#message').html(GetAlertHtml(
+                        'success',
+                        `Se creó exitósamente el registro`,
+                    ));
+                    LoadData($('#StudentId').val());
+                    $('#formModal').modal('hide');
+                })
+                .fail(function (jqXHR, textStatus, errorThrown) {
+                    var errorMessage = '';
+                    if (jqXHR.status === 422) {
+                        errorMessage = jqXHR.responseJSON.join('<br/>');
+                    }
+                    else {
+                        errorMessage = jqXHR.responseText;
+                    }
+
+                    $('#modalMessage').html(GetAlertHtml(
+                        'danger',
+                        'Se produjo un error al realizar la operación',
+                        'Oops!',
+                        errorMessage
+                    ));
+                });
+        }
+
+        function DeleteData() {
+            var idInput = deleteModal.querySelector('#DeleteId');
+
+            $.ajax({
+                url: '@Api/StudentTherapySession/delete/' + idInput.value,
+                type: 'POST',
+            })
+                .done(function () {
+                    $('#message').html(GetAlertHtml(
+                        'success',
+                        `El registro se eliminó exitósamente`,
+                    ));
+                    LoadData($('#TutorId').val());
+                    $('#deleteModal').modal('hide');
+                })
+                .fail(function (jqXHR, textStatus, errorThrown) {
+                    var errorMessage = '';
+                    if (jqXHR.status === 422) {
+                        errorMessage = jqXHR.responseJSON.join('<br/>');
+                    }
+                    else {
+                        errorMessage = jqXHR.responseText;
+                    }
+
+                    $('#deleteModalMessage').html(GetAlertHtml(
+                        'danger',
+                        'Se produjo un error al realizar la operación',
+                        'Oops!',
+                        errorMessage
+                    ));
+                });
+        }
+
+        function LoadStudents() {
+            $('#StudentId').html('');
+
+            $.ajax({
+                url: '@Api/Student/GetAll',
+                type: 'GET',
+            })
+                .done(function (data) {
+                    data.forEach((element) => {
+                        var activeText = element.active ? "" : " (Inactivo)";
+                        $('#StudentId').append(`
+<option value="${element.id}">${element.fullName}${activeText}</option>
+                `);
+                    });
+                    LoadData();
+                })
+                .fail(function (jqXHR, textStatus, errorThrown) {
+                    $('#modalMessage').html(GetAlertHtml(
+                        'danger',
+                        'Se produjo un error al obtener los datos de los estudiantes',
+                        'Oops!',
+                        errorThrown
+                    ));
+                });
+        }
+
+        function LoadTherapies() {
+            $('#Therapy').html('');
+
+            $.ajax({
+                url: '@Api/Therapy/GetAll?active=true',
+                type: 'GET',
+            })
+                .done(function (data) {
+                    data.forEach((element) => {
+                        $('#Therapy').append(`
+<option value="${element.id}">${element.name}</option>
+                `);
+                    });
+                })
+                .fail(function (jqXHR, textStatus, errorThrown) {
+                    $('#modalMessage').html(GetAlertHtml(
+                        'danger',
+                        'Se produjo un error al obtener los datos de las terapias',
+                        'Oops!',
+                        errorThrown
+                    ));
+                });
+        }
+
+        function LoadTutorData() {
+            $.ajax({
+                url: '@Api/Tutor/GetByUser/@(User.Id)',
+                type: 'GET',
+            })
+                .done(function (data) {
+                    if (data) {
+                        $('#TutorId').val(data.id);
+                        LoadStudents();
+                    }
+                    else {
+                        $('#content').html('<hr/><h5>El tutor no existe</h5>');
+                    }
+                })
+                .fail(function (jqXHR, textStatus, errorThrown) {
+                    if (jqXHR.status === 404) {
+                        $('#content').html('<hr/><h5>El tutor no existe</h5>');
+                    }
+                    else {
+                        $('#content').html('');
+                        $('#message').html(GetAlertHtml(
+                            'danger',
+                            'Se produjo un error al obtener los datos del tutor',
+                            'Oops!',
+                            errorThrown
+                        ));
+                    }
+                });
+        }
+
+        function LoadTutorsData() {
+            $('#TutorId').html('');
+
+            $.ajax({
+                url: '@Api/Tutor/GetAll?active=true',
+                type: 'GET',
+            })
+                .done(function (data) {
+                    data.forEach((element) => {
+                        $('#TutorId').append(`
+<option value="${element.id}">${element.fullName}</option>
+                `);
+                    });
+                })
+                .fail(function (jqXHR, textStatus, errorThrown) {
+                    $('#message').html(GetAlertHtml(
+                        'danger',
+                        'Se produjo un error al obtener los datos de los tutores',
+                        'Oops!',
+                        errorThrown
+                    ));
+                });
+        }
+
+        if (!@(customTutor ? "true" : "false")) {
+            LoadTutorData();
+        }
+        else {
+            LoadStudents();
+            LoadTutorsData();
+        }
+
+        function LoadData() {
+            var id = $('#StudentId').val();
+            $('#tableBody').html('');
+            $.ajax({
+                url: '@Api/StudentTherapySession/GetAll/' + id,
+                type: 'GET',
+            })
+                .done(function (data) {
+                    data.forEach((element) => {
+                        $('#tableBody').append(`
+<tr>
+    <td>${element.date}</td>
+    <td>${element.tutorName}</td>
+    <td>${element.therapyName}</td>
+    <td>
+        <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" data-bs-id="${element.id}" data-bs-title="${element.date}: ${element.therapyName} - ${element.tutorName}"><i class="bi bi-trash3-fill"></i></button>
+    </td>
+</tr>
+                `);
+                    });
+                })
+                .fail(function (jqXHR, textStatus, errorThrown) {
+                    $('#message').html(GetAlertHtml(
+                        'danger',
+                        'Se produjo un error al obtener los datos del estudiante',
+                        'Oops!',
+                        errorThrown
+                    ));
+                });
+        }
+    </script>
+}

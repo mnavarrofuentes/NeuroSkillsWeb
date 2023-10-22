@@ -1,0 +1,11 @@
+﻿@model ErrorViewModel
+@{
+    ViewData["Title"] = "Not Found";
+}
+
+<h1 class="text-danger">Not Found.</h1>
+<h4>El recurso solicitado no existe o no tienes permisos para acceder.</h2>
+
+<p asp-if="Model.ShowRequestId">
+    <strong>Request ID:</strong> <code>@Model.RequestId</code>
+</p>

@@ -1,0 +1,313 @@
+﻿@model int
+@{
+    ViewData["Title"] = "Horarios Terapia";
+}
+
+<h1><a class="link-secondary" asp-controller="Therapy" asp-action="Index"><i class="bi bi-arrow-left"></i></a> Horarios Terapia - <span id="TherapyNameTitle"></span></h1>
+
+<div id="message"></div>
+
+<div id="content">
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#formModal" data-bs-id="">Crear <i class="bi bi-plus-lg"></i></button>
+
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th scope="col">Día</th>
+                <th scope="col">Inicia</th>
+                <th scope="col">Finaliza</th>
+                <th scope="col">Tutor</th>
+                <th scope="col">Acciones</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+        </tbody>
+    </table>
+
+    <div class="modal fade" id="formModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Modal title</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="modalMessage"></div>
+                    <form id="modalForm">
+                        @Html.AntiForgeryToken()
+                        <div class="form-group">
+                            <label for="DayOfWeek">Día de la semana:</label>
+                            <select class="form-select" id="DayOfWeek" name="DayOfWeek" required aria-describedby="DayOfWeek" placeholder="Selecciona el día de la semana"></select>
+                        </div>
+                        <div class="form-group">
+                            <label for="StartTime">Hora Inicia:</label>
+                            <input type="time" class="form-control" id="StartTime" required name="StartTime" aria-describedby="StartTime" placeholder="Ingresa la hora">
+                        </div>
+                        <div class="form-group">
+                            <label for="EndTime">Hora Fin:</label>
+                            <input type="time" class="form-control" id="EndTime" required name="EndTime" aria-describedby="EndTime" placeholder="Ingresa la hora">
+                        </div>
+                        <input type="hidden" id="Id" name="Id" value="" />
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" id="confirmButton" onclick="SendData()" class="btn btn-primary">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="deleteModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Eliminar</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="deleteModalMessage"></div>
+                    ¿Está seguro de eliminar el registro <strong id="descriptionText"></strong>?
+                    <input type="hidden" id="DeleteId" name="DeleteId" value="" />
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" id="confirmButton" onclick="DeleteData()" class="btn btn-danger">Eliminar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts{
+    <script>
+        var formModal = document.getElementById('formModal');
+        formModal.addEventListener('show.bs.modal', function (event) {
+            // Button that triggered the modal
+            var button = event.relatedTarget;
+            var id = button.getAttribute('data-bs-id');
+            $('#modalMessage').html('');
+            var dayOfWeekInput = formModal.querySelector('#DayOfWeek');
+            var startDateInput = formModal.querySelector('#StartTime');
+            var endDateInput = formModal.querySelector('#EndTime');
+            var idInput = formModal.querySelector('#Id');
+
+            if (id) {
+                $('#confirmButton').html('Guardar');
+                $('#modalTitle').html('Modificar');
+
+                $.ajax({
+                    url: '@Api/therapyschedule/get/' + id,
+                    type: 'GET',
+                })
+                    .done(function (data) {
+                        startDateInput.value = data.start;
+                        endDateInput.value = data.end;
+                        idInput.value = data.id;
+                        LoadDaysOfWeek(data.dayOfWeek);
+                    })
+                    .fail(function (jqXHR, textStatus, errorThrown) {
+                        $('#modalMessage').html(GetAlertHtml(
+                            'danger',
+                            'Se produjo un error al obtener los datos',
+                            'Oops!',
+                            errorThrown,
+                            false
+                        ));
+                    });
+            }
+            else {
+                $('#confirmButton').html('Crear');
+                $('#modalTitle').html('Crear');
+                dayOfWeekInput.value = '';
+                startDateInput.value = '';
+                endDateInput.value = '';
+                idInput.value = '';
+                LoadDaysOfWeek(dayOfWeekInput.value);
+            }
+        });
+
+        var deleteModal = document.getElementById('deleteModal');
+        deleteModal.addEventListener('show.bs.modal', function (event) {
+            // Button that triggered the modal
+            var button = event.relatedTarget;
+            var id = button.getAttribute('data-bs-id');
+            var dayOfWeek = button.getAttribute('data-bs-dayofweek');
+            var start = button.getAttribute('data-bs-start');
+            var end = button.getAttribute('data-bs-end');
+            $('#deleteModalMessage').html('');
+            var idInput = deleteModal.querySelector('#DeleteId');
+            idInput.value = id;
+            $('#descriptionText').html(`${dayOfWeek}: ${start} - ${end}`);
+        });
+
+        function SendData() {
+            var dayOfWeekInput = formModal.querySelector('#DayOfWeek');
+            var startDateInput = formModal.querySelector('#StartTime');
+            var endDateInput = formModal.querySelector('#EndTime');
+            var idInput = formModal.querySelector('#Id');
+            var addAction = !idInput.value;
+            var endpointName = addAction ? 'Add' : 'Update';
+            var dataObject = {
+                id: !idInput.value ? 0 : idInput.value,
+                therapyId: @Model,
+                dayOfWeek: dayOfWeekInput.value,
+                startTime: startDateInput.value,
+                endTime: endDateInput.value,
+                user: '@(User.UserName)'
+            };
+
+            $.ajax({
+                url: '@Api/therapyschedule/' + endpointName,
+                type: 'POST',
+                contentType: "application/json; charset=utf-8",
+                data: JSON.stringify(dataObject),
+            })
+                .done(function () {
+                    $('#message').html(GetAlertHtml(
+                        'success',
+                        `Se ${(addAction ? `creó` : `modificó`)} exitósamente el registro`,
+                    ));
+                    LoadData();
+                    $('#formModal').modal('hide');
+                })
+                .fail(function (jqXHR, textStatus, errorThrown) {
+                    var errorMessage = '';
+                    if (jqXHR.status === 422) {
+                        errorMessage = jqXHR.responseJSON.join('<br/>');
+                    }
+                    else {
+                        errorMessage = jqXHR.responseText;
+                    }
+
+                    $('#modalMessage').html(GetAlertHtml(
+                        'danger',
+                        'Se produjo un error al realizar la operación',
+                        'Oops!',
+                        errorMessage
+                    ));
+                });
+        }
+
+        function DeleteData() {
+            var idInput = deleteModal.querySelector('#DeleteId');
+
+            $.ajax({
+                url: '@Api/therapyschedule/delete?id=' + idInput.value,
+                type: 'POST',
+            })
+                .done(function () {
+                    $('#message').html(GetAlertHtml(
+                        'success',
+                        `El registro se eliminó exitósamente`,
+                    ));
+                    LoadData();
+                    $('#deleteModal').modal('hide');
+                })
+                .fail(function (jqXHR, textStatus, errorThrown) {
+                    var errorMessage = '';
+                    if (jqXHR.status === 422) {
+                        errorMessage = jqXHR.responseJSON.join('<br/>');
+                    }
+                    else {
+                        errorMessage = jqXHR.responseText;
+                    }
+
+                    $('#deleteModalMessage').html(GetAlertHtml(
+                        'danger',
+                        'Se produjo un error al realizar la operación',
+                        'Oops!',
+                        errorMessage
+                    ));
+                });
+        }
+
+        function LoadTherapyData() {
+            $.ajax({
+                url: '@Api/therapy/get/@Model',
+                type: 'GET',
+            })
+                .done(function (data) {
+                    if (data) {
+                        $('#TherapyNameTitle').html(data.name);
+                        LoadData();
+                    }
+                    else {
+                        $('#content').html('<hr/><h5>La terapia no existe</h5>');
+                    }
+                })
+                .fail(function (jqXHR, textStatus, errorThrown) {
+                    if (jqXHR.status === 404) {
+                        $('#content').html('<hr/><h5>La terapia no existe</h5>');
+                    }
+                    else {
+                        $('#content').html('');
+                        $('#message').html(GetAlertHtml(
+                            'danger',
+                            'Se produjo un error al obtener los datos',
+                            'Oops!',
+                            errorThrown
+                        ));
+                    }
+                });
+        }
+
+        function LoadDaysOfWeek(id) {
+            $('#DayOfWeek').html('');
+
+            $.ajax({
+                url: '@Api/schedule/daysofweek',
+                type: 'GET',
+            })
+                .done(function (data) {
+                    data.forEach((element) => {
+                        $('#DayOfWeek').append(`
+<option ${(element.day == id ? `selected` : ``)} value="${element.day}">${element.name}</option>
+                `);
+                    });
+                })
+                .fail(function (jqXHR, textStatus, errorThrown) {
+                    $('#modalMessage').html(GetAlertHtml(
+                        'danger',
+                        'Se produjo un error al obtener los datos',
+                        'Oops!',
+                        errorThrown
+                    ));
+                });
+        }
+
+        function LoadData() {
+            $('#tableBody').html('');
+            $.ajax({
+                url: '@Api/therapyschedule/therapy/@Model',
+                type: 'GET',
+            })
+                .done(function (data) {
+                    data.forEach((element) => {
+                        $('#tableBody').append(`
+<tr>
+    <td>${element.dayOfWeekName}</td>
+    <td>${element.start}</td>
+    <td>${element.end}</td>
+    <td>${element.tutorName}</td>
+    <td>
+        <button class="btn btn-secondary mx-2" data-bs-toggle="modal" data-bs-target="#formModal" data-bs-id="${element.id}"><i class="bi bi-pencil-square"></i></button>
+        <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" data-bs-id="${element.id}" data-bs-dayofweek="${element.dayOfWeekName}" data-bs-start="${element.start}" data-bs-end="${element.end}"><i class="bi bi-trash3-fill"></i></button>
+    </td>
+</tr>
+                `);
+                    });
+                })
+                .fail(function (jqXHR, textStatus, errorThrown) {
+                    $('#message').html(GetAlertHtml(
+                        'danger',
+                        'Se produjo un error al obtener los datos',
+                        'Oops!',
+                        errorThrown
+                    ));
+                });
+        }
+
+        LoadTherapyData();
+    </script>
+}

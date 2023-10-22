@@ -1,0 +1,245 @@
+﻿@model int
+@{
+    ViewData["Title"] = "Módulos Terapia Paciente";
+}
+
+<h1><a class="link-secondary" id="returnLink" asp-controller="Student" asp-action="Therapies"><i class="bi bi-arrow-left"></i></a> Modulos - Terapia <span id="TherapyNameTitle"></span> -  Paciente <span id="StudentNameTitle"></span></h1>
+
+<div id="message"></div>
+
+<div id="content">
+    <input type="hidden" id="TherapyId" value="" />
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#formModal" data-bs-id="">Crear <i class="bi bi-plus-lg"></i></button>
+
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th scope="col">Módulo</th>
+                <th scope="col" class="text-center">Completada</th>
+                <th scope="col">Acciones</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+        </tbody>
+    </table>
+
+    <div class="modal fade" id="formModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Modal title</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="modalMessage"></div>
+                    <form id="modalForm">
+                        @Html.AntiForgeryToken()
+                        <div class="form-group">
+                            <label for="TherapyModule">Módulo</label>
+                            <select class="form-select" id="TherapyModule" name="TherapyModule" required aria-describedby="TherapyModule" placeholder="Selecciona el módulo"></select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" id="confirmButton" onclick="SendData()" class="btn btn-primary">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="deleteModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Eliminar</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="deleteModalMessage"></div>
+                    ¿Está seguro de eliminar el registro <strong id="descriptionText"></strong>?
+                    <input type="hidden" id="DeleteId" name="DeleteId" value="" />
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" id="confirmButton" onclick="DeleteData()" class="btn btn-danger">Eliminar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts{
+    <script>
+        var formModal = document.getElementById('formModal');
+        formModal.addEventListener('show.bs.modal', function (event) {
+            var therapyModuleInput = formModal.querySelector('#TherapyModule');
+            $('#modalMessage').html('');
+            $('#confirmButton').html('Asignar');
+            $('#modalTitle').html('Asignar');
+            LoadTherapyModules();
+            therapyModuleInput.value = '';
+        });
+
+        var deleteModal = document.getElementById('deleteModal');
+        deleteModal.addEventListener('show.bs.modal', function (event) {
+            // Button that triggered the modal
+            var button = event.relatedTarget;
+            var id = button.getAttribute('data-bs-id');
+            var name = button.getAttribute('data-bs-name');
+            $('#deleteModalMessage').html('');
+            var idInput = deleteModal.querySelector('#DeleteId');
+            idInput.value = id;
+            $('#descriptionText').html(name);
+        });
+
+        function SendData() {
+            var therapyModuleInput = formModal.querySelector('#TherapyModule');
+            var dataObject = {
+                studentAssignationId: @Model,
+                therapyModuleId: therapyModuleInput.value,
+                user: '@(User.UserName)'
+            };
+
+            $.ajax({
+                url: '@Api/StudentTherapyModule',
+                type: 'POST',
+                contentType: "application/json; charset=utf-8",
+                data: JSON.stringify(dataObject),
+            })
+                .done(function () {
+                    $('#message').html(GetAlertHtml(
+                        'success',
+                        `Se asignó exitósamente el registro`,
+                    ));
+                    LoadData();
+                    $('#formModal').modal('hide');
+                })
+                .fail(function (jqXHR, textStatus, errorThrown) {
+                    var errorMessage = jqXHR.responseText;
+
+                    $('#modalMessage').html(GetAlertHtml(
+                        'danger',
+                        'Se produjo un error al realizar la operación',
+                        'Oops!',
+                        errorMessage
+                    ));
+                });
+        }
+
+        function DeleteData() {
+            var idInput = deleteModal.querySelector('#DeleteId');
+
+            $.ajax({
+                url: '@Api/StudentTherapyModule/unassignment/' + idInput.value,
+                type: 'POST',
+            })
+                .done(function () {
+                    $('#message').html(GetAlertHtml(
+                        'success',
+                        `El registro se eliminó exitósamente`,
+                    ));
+                    LoadData();
+                    $('#deleteModal').modal('hide');
+                })
+                .fail(function (jqXHR, textStatus, errorThrown) {
+                    var errorMessage = jqXHR.responseText;
+
+                    $('#deleteModalMessage').html(GetAlertHtml(
+                        'danger',
+                        'Se produjo un error al realizar la operación',
+                        'Oops!',
+                        errorMessage
+                    ));
+                });
+        }
+
+        function LoadTherapyModules() {
+            $('#TherapyModule').html('');
+
+            $.ajax({
+                url: '@Api/TherapyModule/GetAll/' + $('#TherapyId').val(),
+                type: 'GET',
+            })
+                .done(function (data) {
+                    data.forEach((element) => {
+                        $('#TherapyModule').append(`
+<option value="${element.id}">${element.name}</option>
+                `);
+                    });
+                })
+                .fail(function (jqXHR, textStatus, errorThrown) {
+                    $('#modalMessage').html(GetAlertHtml(
+                        'danger',
+                        'Se produjo un error al obtener los datos',
+                        'Oops!',
+                        errorThrown
+                    ));
+                });
+        }
+
+        function LoadStudentAssignationData() {
+            $.ajax({
+                url: '@Api/studentassignation/get/@Model',
+                type: 'GET',
+            })
+                .done(function (data) {
+                    if (data) {
+                        $('#TherapyNameTitle').html(data.therapyName);
+                        $('#StudentNameTitle').html(data.studentName);
+                        $('#TherapyId').val(data.therapyId);
+                        $('#returnLink').attr('href', $('#returnLink').attr('href') + '/' + data.studentId);
+                        LoadData();
+                    }
+                    else {
+                        $('#content').html('<hr/><h5>La terapia asignada no existe</h5>');
+                    }
+                })
+                .fail(function (jqXHR, textStatus, errorThrown) {
+                    if (jqXHR.status === 404) {
+                        $('#content').html('<hr/><h5>La terapia asignada no existe</h5>');
+                    }
+                    else {
+                        $('#content').html('');
+                        $('#message').html(GetAlertHtml(
+                            'danger',
+                            'Se produjo un error al obtener los datos',
+                            'Oops!',
+                            errorThrown
+                        ));
+                    }
+                });
+        }
+
+        function LoadData() {
+            $('#tableBody').html('');
+            $.ajax({
+                url: '@Api/studenttherapymodule/getall/@Model',
+                type: 'GET',
+            })
+                .done(function (data) {
+                    data.forEach((element) => {
+                        $('#tableBody').append(`
+<tr>
+    <td>${element.therapyModuleName}</td>
+    <td class="text-center">${(element.therapyModuleCompleted ? `<i class="bi bi-check-circle-fill text-success"></i>` : ``)}</td>
+    <td>
+        <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" data-bs-id="${element.id}" data-bs-name="${element.therapyModuleName}"><i class="bi bi-trash3-fill"></i></button>
+    </td>
+</tr>
+                `);
+                    });
+                })
+                .fail(function (jqXHR, textStatus, errorThrown) {
+                    $('#message').html(GetAlertHtml(
+                        'danger',
+                        'Se produjo un error al obtener los datos',
+                        'Oops!',
+                        errorThrown
+                    ));
+                });
+        }
+
+        LoadStudentAssignationData();
+    </script>
+}

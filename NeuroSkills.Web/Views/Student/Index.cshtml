@@ -1,0 +1,239 @@
+﻿@{
+    ViewData["Title"] = "Pacientes";
+}
+<h1>Pacientes</h1>
+
+<div id="message"></div>
+
+<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#formModal" data-bs-id="">Crear <i class="bi bi-plus-lg"></i></button>
+
+<table class="table table-hover">
+    <thead>
+        <tr>
+            <th scope="col">Código</th>
+            <th scope="col">Nombre</th>
+            <th scope="col">Dirección</th>
+            <th scope="col">Email</th>
+            <th scope="col">Nit</th>
+            <th scope="col">Fecha Nacimiento</th>
+            <th scope="col" class="text-center">Activo</th>
+            <th scope="col" class="col-3">Acciones</th>
+        </tr>
+    </thead>
+    <tbody id="tableBody">
+    </tbody>
+</table>
+
+<div class="modal fade" id="formModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">Modal title</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="modalMessage"></div>
+                <form id="modalForm">
+                    @Html.AntiForgeryToken()
+                    <div class="form-group">
+                        <label for="Code">Código:</label>
+                        <input type="text" class="form-control" id="Code" required name="Code" aria-describedby="Code" placeholder="Ingresa el código">
+                    </div>
+                    <div class="form-group">
+                        <label for="FirstName">Nombre:</label>
+                        <input type="text" class="form-control" id="FirstName" required name="FirstName" aria-describedby="FirstName" placeholder="Ingresa el nombre">
+                    </div>
+                    <div class="form-group">
+                        <label for="LastName">Apellido:</label>
+                        <input type="text" class="form-control" id="LastName" required name="LastName" aria-describedby="LastName" placeholder="Ingresa el apellido">
+                    </div>
+                    <div class="form-group">
+                        <label for="BirthDate">Fecha Nacimiento:</label>
+                        <input type="date" class="form-control" id="BirthDate" required name="BirthDate" aria-describedby="BirthDate" placeholder="Ingresa la fecha de nacimiento">
+                    </div>
+                    <div class="form-group">
+                        <label for="Email">Correo electrónico:</label>
+                        <input type="email" class="form-control" id="Email" required name="Email" aria-describedby="Email" placeholder="Ingresa el correo electrónico">
+                    </div>
+                    <div class="form-group">
+                        <label for="Address">Dirección:</label>
+                        <input type="text" class="form-control" id="Address" required name="Address" aria-describedby="Address" placeholder="Ingresa la dirección">
+                    </div>
+                    <div class="form-group">
+                        <label for="Nit">NIT:</label>
+                        <input type="text" class="form-control" id="Nit" required name="Nit" aria-describedby="Nit" placeholder="Ingresa el NIT">
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="Active" required name="Active" aria-describedby="Active">
+                        <label class="form-check-label" for="Active">Activo</label>
+                    </div>
+                    <input type="hidden" id="Id" name="Id" value="" />
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" id="confirmButton" onclick="SendData()" class="btn btn-primary">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts{
+    <script>
+        var formModal = document.getElementById('formModal');
+        formModal.addEventListener('show.bs.modal', function (event) {
+            // Button that triggered the modal
+            var button = event.relatedTarget;
+            var id = button.getAttribute('data-bs-id');
+            $('#modalMessage').html('');
+            var codeInput = formModal.querySelector('#Code');
+            var firstNameInput = formModal.querySelector('#FirstName');
+            var lastNameInput = formModal.querySelector('#LastName');
+            var birthDateInput = formModal.querySelector('#BirthDate');
+            var emailInput = formModal.querySelector('#Email');
+            var addressInput = formModal.querySelector('#Address');
+            var nitInput = formModal.querySelector('#Nit');
+            var idInput = formModal.querySelector('#Id');
+
+            if (id) {
+                $('#confirmButton').html('Guardar');
+                $('#modalTitle').html('Modificar');
+
+                $.ajax({
+                    url: '@Api/student/get/' + id,
+                    type: 'GET',
+                })
+                    .done(function (data) {
+                        codeInput.value = data.code;
+                        firstNameInput.value = data.firstName;
+                        lastNameInput.value = data.lastName;
+                        birthDateInput.value = data.birthDate;
+                        emailInput.value = data.email;
+                        addressInput.value = data.address;
+                        nitInput.value = data.nit;
+                        idInput.value = data.id;
+                        $('#Active').prop('checked', data.active);
+                        $('#Active').prop('disabled', false);
+                    })
+                    .fail(function (jqXHR, textStatus, errorThrown) {
+                        $('#modalMessage').html(GetAlertHtml(
+                            'danger',
+                            'Se produjo un error al obtener los datos',
+                            'Oops!',
+                            errorThrown,
+                            false
+                        ));
+                    });
+            }
+            else {
+                $('#confirmButton').html('Crear');
+                $('#modalTitle').html('Crear');
+                codeInput.value = '';
+                firstNameInput.value = '';
+                lastNameInput.value = '';
+                birthDateInput.value = '';
+                emailInput.value = '';
+                addressInput.value = '';
+                nitInput.value = '';
+                idInput.value = '';
+                $('#Active').prop('checked', true);
+                $('#Active').prop('disabled', true);
+            }
+        });
+
+        function SendData() {
+            var codeInput = formModal.querySelector('#Code');
+            var firstNameInput = formModal.querySelector('#FirstName');
+            var lastNameInput = formModal.querySelector('#LastName');
+            var birthDateInput = formModal.querySelector('#BirthDate');
+            var emailInput = formModal.querySelector('#Email');
+            var addressInput = formModal.querySelector('#Address');
+            var nitInput = formModal.querySelector('#Nit');
+            var activeInput = formModal.querySelector('#Active');
+            var idInput = formModal.querySelector('#Id');
+            var addAction = !idInput.value;
+            var endpointName = addAction ? 'Add' : 'Update';
+            var dataObject = {
+                id: idInput.value,
+                code: codeInput.value,
+                firstName: firstNameInput.value,
+                lastName: lastNameInput.value,
+                birthDate: birthDateInput.value,
+                email: emailInput.value,
+                address: addressInput.value,
+                nit: nitInput.value,
+                active: activeInput.checked,
+                user: '@(User.UserName)'
+            };
+
+            $.ajax({
+                url: '@Api/student/' + endpointName,
+                type: 'POST',
+                contentType: "application/json; charset=utf-8",
+                data: JSON.stringify(dataObject),
+            })
+                .done(function () {
+                    $('#message').html(GetAlertHtml(
+                        'success',
+                        `Se ${(addAction ? `creó` : `modificó`)} exitósamente el registro`,
+                    ));
+                    LoadData();
+                    $('#formModal').modal('hide');
+                })
+                .fail(function (jqXHR, textStatus, errorThrown) {
+                    var errorMessage = '';
+                    if (jqXHR.status === 422) {
+                        errorMessage = jqXHR.responseJSON.join('<br/>');
+                    }
+                    else {
+                        errorMessage = jqXHR.responseText;
+                    }
+
+                    $('#modalMessage').html(GetAlertHtml(
+                        'danger',
+                        'Se produjo un error al realizar la operación',
+                        'Oops!',
+                        errorMessage
+                    ));
+                });
+        }
+
+        function LoadData() {
+            $('#tableBody').html('');
+            $.ajax({
+                url: '@Api/student/getall',
+                type: 'GET',
+            })
+                .done(function (data) {
+                    data.forEach((element) => {
+                        $('#tableBody').append(`
+<tr>
+    <td>${element.code}</td>
+    <td>${element.fullName}</td>
+    <td>${element.address}</td>
+    <td>${element.email}</td>
+    <td>${element.nit}</td>
+    <td>${element.birthDate}</td>
+    <td class="text-center">${(element.active ? `<i class="bi bi-check-circle-fill text-success"></i>` : ``)}</td>
+    <td>
+        <button class="btn btn-secondary mx-2" data-bs-toggle="modal" data-bs-target="#formModal" data-bs-id="${element.id}"><i class="bi bi-pencil-square"></i></button>
+        <a class="btn btn-dark" href="/Student/Contacts/${element.id}">Contactos</a>
+        <a class="btn btn-dark" href="/Student/Therapies/${element.id}">Terapias</a>
+    </td>
+</tr>
+                `);
+                    });
+                })
+                .fail(function (jqXHR, textStatus, errorThrown) {
+                    $('#message').html(GetAlertHtml(
+                        'danger',
+                        'Se produjo un error al obtener los datos',
+                        'Oops!',
+                        errorThrown
+                    ));
+                });
+        }
+
+        LoadData();
+    </script>
+}

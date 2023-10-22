@@ -1,0 +1,76 @@
+﻿@model StudentResultViewModel
+@{
+    Layout = "";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+</head>
+<body>
+    <div class="container">
+        <main role="main" class="pb-3">
+            <h1>Resultados Paciente</h1>
+
+            <div class="card">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item">Código: @Model.Code</li>
+                    <li class="list-group-item">Nombre: @Model.FullName</li>
+                </ul>
+            </div>
+            <br />
+            <table class="table table-borderless">
+                <thead class="table-secondary">
+                    <tr>
+                        <th scope="col">Terapia</th>
+                        <th scope="col" class="text-center">Completada</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var therapy in Model.Therapies)
+                    {
+                        <tr>
+                            <td><h4>@therapy.TherapyName</h4></td>
+                            <td class="text-center">@(therapy.Completed ? "Sí" : "No")</td>
+                        </tr>
+                        @if (therapy.ModulesResult.Count is not 0)
+                        {
+                            <tr>
+                                <td colspan="2">
+                                    <table class="table table-hover mb-3 px-5">
+                                        <thead class="table-secondary">
+                                            <tr>
+                                                <th scope="col">Módulo</th>
+                                                <th scope="col">Descripción</th>
+                                                <th scope="col">Puntaje</th>
+                                                <th scope="col" class="text-center">Completado</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var module in therapy.ModulesResult)
+                                            {
+                                                <tr>
+                                                    <td>@module.ModuleName</td>
+                                                    <td>@module.ModuleDescription</td>
+                                                    <td>@module.Score</td>
+                                                    <td class="text-center">@(module.Completed ? "Sí" : "No")</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </main>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

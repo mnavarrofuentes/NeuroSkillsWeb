@@ -1,0 +1,265 @@
+﻿@{
+    ViewData["Title"] = "Tutores";
+}
+<h1>Tutores</h1>
+
+<div id="message"></div>
+
+<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#formModal" data-bs-id="">Crear <i class="bi bi-plus-lg"></i></button>
+
+<table class="table table-hover">
+    <thead>
+        <tr>
+            <th scope="col">Código</th>
+            <th scope="col">Nombre</th>
+            <th scope="col">Teléfono</th>
+            <th scope="col">Email</th>
+            <th scope="col">Especialidad</th>
+            <th scope="col" class="text-center">Activo</th>
+            <th scope="col">Acciones</th>
+        </tr>
+    </thead>
+    <tbody id="tableBody">
+    </tbody>
+</table>
+
+<div class="modal fade" id="formModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">Modal title</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="modalMessage"></div>
+                <form id="modalForm">
+                    @Html.AntiForgeryToken()
+                    <div class="form-group">
+                        <label for="Code">Código:</label>
+                        <input type="text" class="form-control" id="Code" required name="Code" aria-describedby="Code" placeholder="Ingresa el código">
+                    </div>
+                    <div class="form-group">
+                        <label for="FirstName">Nombre:</label>
+                        <input type="text" class="form-control" id="FirstName" required name="FirstName" aria-describedby="FirstName" placeholder="Ingresa el nombre">
+                    </div>
+                    <div class="form-group">
+                        <label for="LastName">Apellido:</label>
+                        <input type="text" class="form-control" id="LastName" required name="LastName" aria-describedby="LastName" placeholder="Ingresa el apellido">
+                    </div>
+                    <div class="form-group">
+                        <label for="BirthDate">Fecha Nacimiento:</label>
+                        <input type="date" class="form-control" id="BirthDate" required name="BirthDate" aria-describedby="BirthDate" placeholder="Ingresa la fecha de nacimiento">
+                    </div>
+                    <div class="form-group">
+                        <label for="Phone">Teléfono:</label>
+                        <input type="text" class="form-control" id="Phone" required name="Phone" aria-describedby="Phone" placeholder="Ingresa el teléfono">
+                    </div>
+                    <div class="form-group">
+                        <label for="Email">Correo electrónico:</label>
+                        <input type="email" class="form-control" id="Email" required name="Email" aria-describedby="Email" placeholder="Ingresa el correo electrónico">
+                    </div>
+                    <div class="form-group">
+                        <label for="Address">Dirección:</label>
+                        <input type="text" class="form-control" id="Address" required name="Address" aria-describedby="Address" placeholder="Ingresa la dirección">
+                    </div>
+                    <div class="form-group">
+                        <label for="Specialty">Especialidad:</label>
+                        <input type="text" class="form-control" id="Specialty" required name="Specialty" aria-describedby="Specialty" placeholder="Ingresa la especialidad">
+                    </div>
+                    <div class="form-group">
+                        <label for="Salary">Salario:</label>
+                        <div class="input-group">
+                            <span class="input-group-text">Q.</span>
+                            <input type="number" class="form-control" id="Salary" required name="Salary" aria-describedby="Salary" placeholder="Ingresa el salario">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="HireDate">Fecha Contratación:</label>
+                        <input type="date" class="form-control" id="HireDate" required name="HireDate" aria-describedby="HireDate" placeholder="Ingresa la fecha de contratación">
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="Active" required name="Active" aria-describedby="Active">
+                        <label class="form-check-label" for="Active">Activo</label>
+                    </div>
+                    <input type="hidden" id="Id" name="Id" value="" />
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" id="confirmButton" onclick="SendData()" class="btn btn-primary">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts{
+    <script>
+        var formModal = document.getElementById('formModal');
+        formModal.addEventListener('show.bs.modal', function (event) {
+            // Button that triggered the modal
+            var button = event.relatedTarget;
+            var id = button.getAttribute('data-bs-id');
+            $('#modalMessage').html('');
+            var codeInput = formModal.querySelector('#Code');
+            var firstNameInput = formModal.querySelector('#FirstName');
+            var lastNameInput = formModal.querySelector('#LastName');
+            var birthDateInput = formModal.querySelector('#BirthDate');
+            var phoneInput = formModal.querySelector('#Phone');
+            var emailInput = formModal.querySelector('#Email');
+            var addressInput = formModal.querySelector('#Address');
+            var specialtyInput = formModal.querySelector('#Specialty');
+            var salaryInput = formModal.querySelector('#Salary');
+            var hireDateInput = formModal.querySelector('#HireDate');
+            var idInput = formModal.querySelector('#Id');
+
+            if (id) {
+                $('#confirmButton').html('Guardar');
+                $('#modalTitle').html('Modificar');
+
+                $.ajax({
+                    url: '@Api/tutor/get/' + id,
+                    type: 'GET',
+                })
+                    .done(function (data) {
+                        codeInput.value = data.code;
+                        firstNameInput.value = data.firstName;
+                        lastNameInput.value = data.lastName;
+                        birthDateInput.value = data.birthDate;
+                        phoneInput.value = data.phone;
+                        emailInput.value = data.user.email;
+                        addressInput.value = data.address;
+                        specialtyInput.value = data.specialty;
+                        salaryInput.value = data.salary;
+                        hireDateInput.value = data.hireDate;
+                        idInput.value = data.id;
+                        $('#Active').prop('checked', data.user.active);
+                        $('#Active').prop('disabled', false);
+                    })
+                    .fail(function (jqXHR, textStatus, errorThrown) {
+                        $('#modalMessage').html(GetAlertHtml(
+                            'danger',
+                            'Se produjo un error al obtener los datos',
+                            'Oops!',
+                            errorThrown,
+                            false
+                        ));
+                    });
+            }
+            else {
+                $('#confirmButton').html('Crear');
+                $('#modalTitle').html('Crear');
+                codeInput.value = '';
+                firstNameInput.value = '';
+                lastNameInput.value = '';
+                birthDateInput.value = '';
+                phoneInput.value = '';
+                emailInput.value = '';
+                addressInput.value = '';
+                specialtyInput.value = '';
+                salaryInput.value = '';
+                hireDateInput.value = '';
+                idInput.value = '';
+                $('#Active').prop('checked', true);
+                $('#Active').prop('disabled', true);
+            }
+        });
+
+        function SendData() {
+            var codeInput = formModal.querySelector('#Code');
+            var firstNameInput = formModal.querySelector('#FirstName');
+            var lastNameInput = formModal.querySelector('#LastName');
+            var birthDateInput = formModal.querySelector('#BirthDate');
+            var phoneInput = formModal.querySelector('#Phone');
+            var emailInput = formModal.querySelector('#Email');
+            var addressInput = formModal.querySelector('#Address');
+            var specialtyInput = formModal.querySelector('#Specialty');
+            var salaryInput = formModal.querySelector('#Salary');
+            var hireDateInput = formModal.querySelector('#HireDate');
+            var activeInput = formModal.querySelector('#Active');
+            var idInput = formModal.querySelector('#Id');
+            var addAction = !idInput.value;
+            var endpointName = addAction ? 'Add' : 'Update';
+            var dataObject = {
+                id: idInput.value,
+                code: codeInput.value,
+                firstName: firstNameInput.value,
+                lastName: lastNameInput.value,
+                birthDate: birthDateInput.value,
+                phone: phoneInput.value,
+                email: emailInput.value,
+                address: addressInput.value,
+                specialty: specialtyInput.value,
+                salary: salaryInput.value,
+                hireDate: hireDateInput.value,
+                active: activeInput.checked,
+                user: '@(User.UserName)'
+            };
+
+            $.ajax({
+                url: '@Api/tutor/' + endpointName,
+                type: 'POST',
+                contentType: "application/json; charset=utf-8",
+                data: JSON.stringify(dataObject),
+            })
+                .done(function () {
+                    $('#message').html(GetAlertHtml(
+                        'success',
+                        `Se ${(addAction ? `creó` : `modificó`)} exitósamente el registro`,
+                    ));
+                    LoadData();
+                    $('#formModal').modal('hide');
+                })
+                .fail(function (jqXHR, textStatus, errorThrown) {
+                    var errorMessage = '';
+                    if (jqXHR.status === 422) {
+                        errorMessage = jqXHR.responseJSON.join('<br/>');
+                    }
+                    else {
+                        errorMessage = jqXHR.responseText;
+                    }
+
+                    $('#modalMessage').html(GetAlertHtml(
+                        'danger',
+                        'Se produjo un error al realizar la operación',
+                        'Oops!',
+                        errorMessage
+                    ));
+                });
+        }
+
+        function LoadData() {
+            $('#tableBody').html('');
+            $.ajax({
+                url: '@Api/tutor/getall',
+                type: 'GET',
+            })
+                .done(function (data) {
+                    data.forEach((element) => {
+                        $('#tableBody').append(`
+<tr>
+    <td>${element.code}</td>
+    <td>${element.fullName}</td>
+    <td>${element.phone}</td>
+    <td>${element.user.email}</td>
+    <td>${element.specialty}</td>
+    <td class="text-center">${(element.user.active ? `<i class="bi bi-check-circle-fill text-success"></i>` : ``)}</td>
+    <td>
+        <button class="btn btn-secondary mx-2" data-bs-toggle="modal" data-bs-target="#formModal" data-bs-id="${element.id}"><i class="bi bi-pencil-square"></i></button>
+    </td>
+</tr>
+                `);
+                    });
+                })
+                .fail(function (jqXHR, textStatus, errorThrown) {
+                    $('#message').html(GetAlertHtml(
+                        'danger',
+                        'Se produjo un error al obtener los datos',
+                        'Oops!',
+                        errorThrown
+                    ));
+                });
+        }
+
+        LoadData();
+    </script>
+}

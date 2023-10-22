@@ -1,0 +1,98 @@
+﻿@{ 
+    var adminRole = Constants.AdminRole;
+    var tutorRole = Constants.TutorRole;
+    var studentRole = Constants.StudentRole;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - NeuroSkills.Web</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/NeuroSkills.Web.styles.css" asp-append-version="true" />
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+            <div class="container-fluid">
+                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">NeuroSkills.Web</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                        aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div asp-if="User.IsAuthenticated" class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                    <ul class="navbar-nav">
+                        <li asp-if="User.HasRole(adminRole) || User.HasRole(tutorRole)" class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMasterData" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                Mantenimiento
+                            </a>
+                            <div class="dropdown-menu" aria-labelledby="navbarDropdownMasterData">
+                                <a asp-if="User.HasRole(tutorRole)" class="dropdown-item text-dark" asp-area="" asp-controller="Tutor" asp-action="Assignations">Asignación Horarios</a>
+                                <a asp-if="User.HasRole(adminRole) || User.HasRole(tutorRole)" class="dropdown-item text-dark" asp-area="" asp-controller="Tutor" asp-action="StudentSessions">Asistencia Paciente</a>
+                                <a asp-if="User.HasRole(adminRole) || User.HasRole(tutorRole)" class="dropdown-item text-dark" asp-area="" asp-controller="Tutor" asp-action="StudentResults">Resultados Paciente</a>
+                                <hr asp-if="User.HasRole(adminRole)" />
+                                <a asp-if="User.HasRole(adminRole)" class="dropdown-item text-dark" asp-area="" asp-controller="Student" asp-action="Index">Pacientes</a>
+                                <a asp-if="User.HasRole(adminRole)" class="dropdown-item text-dark" asp-area="" asp-controller="Tutor" asp-action="Index">Tutores</a>
+                                <a asp-if="User.HasRole(adminRole)" class="dropdown-item text-dark" asp-area="" asp-controller="TherapyType" asp-action="Index">Tipo Terapia</a>
+                                <a asp-if="User.HasRole(adminRole)" class="dropdown-item text-dark" asp-area="" asp-controller="Therapy" asp-action="Index">Terapias</a>
+                            </div>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownReport" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                Reportes
+                            </a>
+                            <div class="dropdown-menu" aria-labelledby="navbarDropdownReport">
+                                <a class="dropdown-item text-dark" asp-area="" asp-controller="Report" asp-action="StudentResult">Resultados @(!User.HasRole(studentRole) ? "Paciente" : "")</a>
+                            </div>
+                        </li>
+                    </ul>
+                    <span class="navbar-text">
+                        <ul class="navbar-nav">
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownReport" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    @User.UserName
+                                </a>
+                                <div class="dropdown-menu" aria-labelledby="navbarDropdownReport">
+                                    <a class="dropdown-item text-dark" asp-area="" asp-controller="Home" asp-action="UserData">Mantenimiento Usuario</a>
+                                    <a class="dropdown-item text-dark" asp-area="" asp-controller="Home" asp-action="Logout">Cerrar Sesión</a>
+                                </div>
+                            </li>
+                        </ul>
+                    </span>
+                </div>
+            </div>
+        </nav>
+    </header>
+    <div class="container">
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="border-top footer text-muted">
+        <div class="container">
+            &copy; 2023 - NeuroSkills.Web
+        </div>
+    </footer>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        $.ajaxSetup({
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader('Authorization', 'Bearer @Token');
+            },
+            error: function (xhr) {
+                if (xhr.status === 401) {
+                    window.location.href = "/Home/Login";
+                }
+            }
+        });
+    </script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
